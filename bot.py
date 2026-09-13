@@ -3,14 +3,18 @@ import pytz
 from telethon import TelegramClient, events
 import google.generativeai as genai
 
+# البيانات الأساسية وتوكن البوت الخاص بك
 API_ID = 30770901
 API_HASH = 'ab37305203102e7e98aa426eaeba7b114'
+BOT_TOKEN = '8713539183:AAHQHS9ghWVitetG1XluFjNtZE4UA5FYQmU'
+
 GEMINI_API_KEY = 'AQ.Ab8RN6LFblP7fgCmxodDWz4zXZXV6nD5eBI3XTPAp-nBskEA7Q'
 
 genai.configure(api_key=GEMINI_API_KEY)
 ai_model = genai.GenerativeModel('gemini-1.5-flash')
 
-client = TelegramClient('gamer_manager_session', API_ID, API_HASH)
+# تشغيل البوت عبر التوكن (لا يطلب رقم هاتف ولا رمز تحقق)
+client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 seen_messages = set()
 
 def ai_analyze_deal(message_text):
@@ -30,7 +34,7 @@ def ai_analyze_deal(message_text):
     except Exception:
         return False
 
-@client.on(events.NewMessage(outgoing=True, chats='me', pattern=r'\.search\s+(.+?)\s+(\d{2}:\d{2})'))
+@client.on(events.NewMessage(pattern=r'/search\s+(.+?)\s+(\d{2}:\d{2})'))
 async def smart_search_handler(event):
     target_group = event.pattern_match.group(1).strip()
     time_str = event.pattern_match.group(2).strip()
@@ -38,7 +42,7 @@ async def smart_search_handler(event):
     try:
         hour, minute = map(int, time_str.split(':'))
     except ValueError:
-        await event.respond("❌ صيغة الوقت غير صحيحة. استخدم الشكل التالي: `16:00`")
+        await event.respond("❌ صيغة الوقت غير صحيحة. استخدم الشكل التالي:\n`/search اسم_المجموعة 16:00`")
         return
 
     await event.respond(f"🔍 جاري فحص مجموعة `{target_group}` وبحث العروض منذ الساعة {time_str}...")
@@ -101,14 +105,13 @@ async def smart_search_handler(event):
 
         if unique_deals:
             final_report = f"✅ **تم العثور على {results_count} عرضاً مطابقاً لطلبك:**\n\n" + "\n\n".join(unique_deals)
-            await client.send_message('me', final_report)
+            await event.respond(final_report)
         else:
-            await client.send_message('me', f"⚠️ لم يتم العثور على أي عروض جديدة في `{target_group}` بعد الساعة {time_str}.")
+            await event.respond(f"⚠️ لم يتم العثور على أي عروض جديدة في `{target_group}` بعد الساعة {time_str}.")
 
     except Exception as e:
-        await client.send_message('me', f"❌ حدث خطأ أثناء تنفيذ البحث: `{str(e)}`")
+        await event.respond(f"❌ حدث خطأ أثناء تنفيذ البحث: `{str(e)}`")
 
 if __name__ == '__main__':
-    print("المدير الذكي يعمل الآن بكامل طاقته...")
-    client.start()
+    print("البوت يعمل الآن بكامل طاقته عبر الـ Token...")
     client.run_until_disconnected()
